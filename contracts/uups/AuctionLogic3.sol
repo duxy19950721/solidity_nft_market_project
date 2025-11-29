@@ -32,20 +32,20 @@ contract AuctionLogic3 {
      */
     function createAuction(
         address nftAddress,
-        uint256 tokenId
+        uint256 tokenId,
+        uint256 minPrice
     )
         external
         checkTokenOnlyOwner(nftAddress, tokenId)
-        checkInvalidPrice(msg.value)
         checkTokenIsAuction(nftAddress, tokenId)
-        payable
         returns (bool)
     {
         AuctionInfo storage auction = auctionInfo[nftAddress][tokenId];
         auction.owner = msg.sender;
-        auction.minPrice = msg.value;
-        auction.bidPrice = msg.value;
-        auction.bidUser = msg.sender;
+        auction.minPrice = minPrice;
+        auction.bidPrice = minPrice;
+        // 设置为空地址，逻辑上自洽，初始拍卖人为空& 无人拍卖时也不会进行转账操作
+        auction.bidUser = address(0);
 
         return true;
     }
@@ -55,7 +55,6 @@ contract AuctionLogic3 {
         uint256 tokenId
     )
         external
-        checkInvalidPrice(msg.value)
         checkTokenIsNotInAuction(nftAddress, tokenId)
         payable
         returns (bool)
@@ -65,8 +64,10 @@ contract AuctionLogic3 {
         // 校验出价是否大于当前出价
         require(msg.value > auction.bidPrice, "Price is not higher than current bid");
 
-        // 原先购买的转出去
-        payable(auction.bidUser).transfer(auction.bidPrice);
+        if (auction.bidUser != address(0)) {
+            // 原先购买的转出去
+            payable(auction.bidUser).transfer(auction.bidPrice);
+        }        
 
         // 记录当前出价
         auction.bidPrice = msg.value;
@@ -143,14 +144,6 @@ contract AuctionLogic3 {
     modifier checkTokenOnlyOwner(address nftAddress, uint256 tokenId) {
         if (IERC721(nftAddress).ownerOf(tokenId) != msg.sender) {
             revert TokenNotOwner(tokenId);
-        }
-        _;
-    }
-
-    // 校验价格是否是正常大于0的
-    modifier checkInvalidPrice(uint256 price) {
-        if (price <= 0) {
-            revert InvalidMinPrice(price);
         }
         _;
     }

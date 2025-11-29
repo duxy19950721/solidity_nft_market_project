@@ -79,7 +79,7 @@ describe("DxyNFT contract", () => {
   });
 
   it("创建拍卖 tokenId=1的NFT, 初始价格1000000000000000wei", async () => {
-    await auction.createAuction(dxyNFT.target, 1, {value: 1000000000000000});
+    await auction.createAuction(dxyNFT.target, 1, 1e15);
     const auctionInfo = await auction.getAuctionInfo(dxyNFT.target, 1);
     assert.equal(auctionInfo.bidPrice, 1000000000000000n);
   });
